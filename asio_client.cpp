@@ -1,184 +1,184 @@
 
-#include <iostream>
-#include <boost/asio.hpp>
-#include <boost/thread.hpp>
-#include <boost/lexical_cast.hpp>
-
-/*TODO:
- * timer benutzen: http://think-async.com/asio/boost_asio_1_4_8/doc/html/boost_asio/example/timeouts/async_tcp_client.cpp
- *
- */
 
 #define SLEEP_MS(x) boost::this_thread::sleep(boost::posix_time::milliseconds(x));
 
-typedef boost::asio::ip::tcp tcp;
+#include "asio_client.h"
 
-class TCPClient
+
+TCPClient::TCPClient() :
+	m_work(m_io_service),
+    m_worker( boost::bind(&TCPClient::Worker, this) ), //creates and runs the thread
+    m_socket( new tcp::socket(m_io_service) ),
+    m_disconnected_callback(0),
+    m_connected_callback(0),
+    m_received_callback(0),
+    m_sent_callback(0),
+	m_delayed_connect_timer(m_io_service)
 {
-    typedef boost::function<void(const boost::system::error_code& error)> ConnectedCallback_t;
-    typedef boost::function<void()> DisconnectedCallback_t;
-    typedef boost::function<void(const boost::system::error_code& error, size_t bytesTransferred, const char *data)> ReceivedCallback_t;
-    typedef boost::function<void(const boost::system::error_code& error, size_t bytesTransferred)> SentCallback_t;
+}
 
-    ConnectedCallback_t    m_connected_callback;
-    DisconnectedCallback_t m_disconnected_callback;
-    ReceivedCallback_t     m_received_callback;
-    SentCallback_t         m_sent_callback;
+TCPClient::~TCPClient()
+{
+	m_delayed_connect_timer.cancel();
+    doDisconnect();
+    m_io_service.stop();
+    if (m_worker.joinable())
+        m_worker.join();
+}
 
-public: 
-	TCPClient() : 
-		m_work(m_io_service),
-        m_worker( boost::bind(&TCPClient::Worker, this) ), //creates and runs the thread
-        m_socket( new tcp::socket(m_io_service) ),
-        m_disconnected_callback(0),
-        m_connected_callback(0),
-        m_received_callback(0),
-        m_sent_callback(0)
+
+void TCPClient::Worker()
+{
+	std::cout << "Worker started" << std::endl;
+	while (! m_io_service.stopped())
 	{
-	}
-
-    ~TCPClient()
-    {
-        doDisconnect();
-        m_io_service.stop();
-        if (m_worker.joinable())
-            m_worker.join();
-    }
-
-    void set_connected_callback(ConnectedCallback_t cb) { m_connected_callback = cb; }
-    void set_disconnected_callback(DisconnectedCallback_t cb) { m_disconnected_callback = cb; }
-    void set_received_callback(ReceivedCallback_t cb) { m_received_callback = cb; }
-    void set_sent_callback(SentCallback_t cb) { m_sent_callback = cb; }
-
-	void Worker()
-	{
-		std::cout << "Worker started" << std::endl;
-		while (! m_io_service.stopped())
+		try
 		{
-			try
-			{
-				m_io_service.run();
-			}
-			catch(boost::system::system_error const& e)
-			{
-				std::cout << "Error: " << e.what() << std::endl;
-			}
+			m_io_service.run();
 		}
-		std::cout << "Worker ended" << std::endl;
+		catch(boost::system::system_error const& e)
+		{
+			std::cout << "Exception: " << e.what() << std::endl;
+		}
 	}
+	std::cout << "Worker ended" << std::endl;
+}
 
-	boost::asio::io_service& get_io_service() { return m_io_service; }	
 
-	void connectTo(std::string host, int16_t port)
+
+void TCPClient::connectTo(std::string host, int16_t port, uint32_t delayed_by_ms)
+{
+	if (delayed_by_ms > 0)
 	{
+		m_delayed_connect_timer.expires_from_now(boost::posix_time::milliseconds(delayed_by_ms));
+		m_delayed_connect_timer.async_wait(boost::bind(&TCPClient::connectTo, this, host, port, 0));
+	}
+	else
+	{
+		m_delayed_connect_timer.expires_at(boost::posix_time::pos_infin);
+
 		tcp::resolver resolver(m_io_service);
 		tcp::resolver::query query(host, boost::lexical_cast< std::string >(port));
 		tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
-		
-		m_socket->async_connect(*endpoint_iterator, boost::bind(&TCPClient::handle_connect, this, boost::asio::placeholders::error) );
+
+		m_socket->async_connect(*endpoint_iterator, boost::bind(&TCPClient::handle_connect, this, boost::asio::placeholders::error));
 	}
 
-	void handle_connect(const boost::system::error_code& error)
+}
+
+void TCPClient::handle_connect(const boost::system::error_code& error)
+{
+	if (!error)
 	{
-		if (!error)
-		{
-            if (0 != m_connected_callback)
-            {
-                // Connect succeeded.
-                m_connected_callback(error);
-            }
-		}
-		else
-		{
-			if (m_socket->is_open())
-			{
-				m_socket->close();
-			}
-			std::cout << "Warning: could not connect : " << error.message() << std::endl;
-		}
+        if (0 != m_connected_callback)
+        {
+            // Connect succeeded.
+            m_connected_callback(error);
+        }
 	}
-
-	void startReceive()
+	else
 	{
-		m_socket->async_read_some(boost::asio::buffer(m_rx_buffer), boost::bind(&TCPClient::handle_read, this, 
-					boost::asio::placeholders::error, 
-					boost::asio::placeholders::bytes_transferred));
-	}
-
-	void handle_read(const boost::system::error_code& ec, size_t bytes_transferred)
-	{
-		if (!ec)
+		if (error.value() == 995)
 		{
-            if (0 != m_received_callback)
-            {
-                m_received_callback(ec, bytes_transferred, m_rx_buffer.data() );
-            }
-
-            startReceive();
+			return; //ignore
 		}
-		else
+		if (m_socket->is_open())
 		{
-			if (ec.value() == 125) // operation canceled
-			{
-				return;
-			}
-			else if (ec.value() == 107) // endpoint not connected
-			{
-				disconnect();
-				return;
-			}
-			else if (ec.value() == 9) // bad file desc
-			{
-				return;
-			}
-			else if (ec.value() == 2) // end of file
-            {
-                disconnect();
-                return;
-            }
-            std::cout << "Error: could not read : " << ec.message() << " : " << ec.value() << std::endl;
+			m_socket->close();
+		}
+		std::cout << "Warning: could not connect : " << error.message() << " - " << error.value() <<std::endl;
+		disconnect();
+		//m_connected_callback(error);
+	}
+}
+
+void TCPClient::startReceive()
+{
+	m_socket->async_read_some(boost::asio::buffer(m_rx_buffer), boost::bind(&TCPClient::handle_read, this, 
+				boost::asio::placeholders::error, 
+				boost::asio::placeholders::bytes_transferred));
+}
+
+void TCPClient::handle_read(const boost::system::error_code& ec, size_t bytes_transferred)
+{
+	if (!ec)
+	{
+        if (0 != m_received_callback)
+        {
+            m_received_callback(ec, bytes_transferred, m_rx_buffer.data() );
+        }
+
+        startReceive();
+	}
+	else
+	{
+		if (ec.value() == 125) // operation canceled
+		{
 			return;
 		}
+		else if (ec.value() == 107) // endpoint not connected
+		{
+			disconnect();
+			return;
+		}
+		else if (ec.value() == 9) // bad file desc
+		{
+			return;
+		}
+		else if (ec.value() == 2) // end of file
+        {
+            disconnect();
+            return;
+        }
+		else if (ec.value() == 1236) // connection closed
+		{
+			return; // ignore error
+		}
+		else if (ec.value() == 10054) // connection closed
+		{
+			disconnect();
+			return; // ignore error
+		}
+		std::cout << "Error: could not read : " << ec.message() << " : " << ec.value() << std::endl;
+		return;
 	}
+}
 
-    void send_data(const char *data, size_t len)
-    {
-        async_write(*m_socket, boost::asio::buffer(data, len), m_sent_callback); //ensures that all is written when handler is invoked
-        //m_socket->async_send(boost::asio::buffer(data, len), m_sent_callback);
-    }
+void TCPClient::send_data(const char *data, size_t len)
+{
+    async_write(*m_socket, boost::asio::buffer(data, len), m_sent_callback); //ensures that all is written when handler is invoked
+    //m_socket->async_send(boost::asio::buffer(data, len), m_sent_callback);
+}
 
-	void disconnect()
-	{
+void TCPClient::disconnect()
+{
+	m_delayed_connect_timer.cancel();
+	//		if (m_socket->is_open())
+	//{
+	//}
+	m_io_service.post(boost::bind(&TCPClient::doDisconnect, this));
+}
+
+void TCPClient::doDisconnect()
+{
+		//m_socket->cancel(); // cancel all operations on the socket
+		m_io_service.reset(); // remove pending operations
 		if (m_socket->is_open())
 		{
-			m_io_service.post( boost::bind(&TCPClient::doDisconnect, this) );
+			m_socket->close(); // close connection
 		}
-	}
+		m_socket.reset(new tcp::socket(m_io_service)); // reset to usable state
 
-	void doDisconnect()
-	{
-		if (m_socket->is_open())
-		{
-			m_socket->cancel(); // cancel all operations on the socket
-			m_io_service.reset(); // remove pending operations
-            m_socket->close(); // close connection
-            m_socket.reset( new tcp::socket(m_io_service) ); // reset to usable state
+        m_disconnected_callback();
+}
 
-            m_disconnected_callback();
-		}
-	}
-
-private:
-	boost::asio::io_service m_io_service;
-	boost::asio::io_service::work m_work;
-	boost::shared_ptr<tcp::socket> m_socket;
-    boost::array<char, 65000> m_rx_buffer;
-
-    boost::thread m_worker;
-};
 
 class Algorithm
-{
+{		//m_tcpClient.connectTo("192.168.1.143", 1234);
+	//std::string m_host = "192.168.1.143";
+	std::string m_host = "127.0.0.1";
+	uint16_t m_port = 1234;
+
 public:
     Algorithm() :
         m_bConnected(false)
@@ -191,8 +191,7 @@ public:
 
 	void start()
 	{
-		m_tcpClient.connectTo("127.0.0.1", 1234);
-		//m_tcpClient.connectTo("192.168.1.143", 1234);
+		m_tcpClient.connectTo(m_host, m_port, 0);
 	}
 
 	void stop()
@@ -208,21 +207,29 @@ public:
 			std::cout << "Connected - starting receive " << std::endl;
 			m_tcpClient.startReceive();
 			std::cout << "          - starting send " << std::endl;
-			startSend();
+			//startSend();
         }
+		else if (error.value() == 10061)
+		{
+			std::cout << "Re-Connecting..." << std::endl;
+			m_tcpClient.connectTo(m_host, m_port, 4000);
+		}
     }
 
     void handle_disconnect()
     {
         m_bConnected = false;
-        std::cout << "Alog::Disconnected" << std::endl;
+        std::cout << "Algo::Disconnected" << std::endl;
+
+		std::cout << "Algo::Re-Connecting..." << std::endl;
+		m_tcpClient.connectTo(m_host, m_port, 4000);
     }
 
     void handle_read(const boost::system::error_code& ec, size_t bytes_transferred, const char *data)
     {
         std::string tmp;
         tmp.assign((const char*)data, bytes_transferred);
-        //std::cout << "RX: " << tmp << std::endl;
+        std::cout << "RX: " << tmp << std::endl;
     }
 
     void startSend()
@@ -254,8 +261,8 @@ void sleeper()
 	int i = 0;
 	while(1)
 	{
-		SLEEP_MS(1000);
-		break;
+		SLEEP_MS(4000);
+		//break;
 	}
 	//std::cout << "sleeper end" << std::endl;
 }
@@ -275,7 +282,7 @@ int main()
 	SLEEP_MS(300);
 	a.start();
 	SLEEP_MS(900);
-	a.stop();
+	//a.stop();
 
 	
 	boost::thread s( boost::bind( &sleeper ) );	

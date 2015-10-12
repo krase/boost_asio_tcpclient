@@ -14,6 +14,7 @@ s.bind((TCP_IP, TCP_PORT))
 s.listen(1)
 
 while 1:
+    print("Waiting for client")
     try:
         conn, addr = s.accept()
     except KeyboardInterrupt:
@@ -28,7 +29,7 @@ while 1:
         #print "received data:", data
         data = bytearray('%d '%i, 'ascii')
         try:
-            #time.sleep(0.01)
+            time.sleep(0.01)
             conn.send(data)  # echo
             i += 1
         except BrokenPipeError:
@@ -37,4 +38,8 @@ while 1:
             break
         except KeyboardInterrupt:
             break
-conn.close()
+        except ConnectionAbortedError:
+            break
+
+s.close()
+
