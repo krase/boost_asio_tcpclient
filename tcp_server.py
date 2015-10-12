@@ -37,6 +37,7 @@ while 1:
         except ConnectionResetError:
             break
         except KeyboardInterrupt:
+            conn.close()
             break
         except ConnectionAbortedError:
             break

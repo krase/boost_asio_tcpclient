@@ -29,7 +29,7 @@ TCPClient::~TCPClient()
 void TCPClient::Worker()
 {
 	std::cout << "Worker started" << std::endl;
-	while (! m_io_service.stopped())
+	while (false == m_io_service.stopped())
 	{
 		try
 		{
@@ -47,8 +47,8 @@ void TCPClient::Worker()
 void TCPClient::connectTo(std::string host, int16_t port, uint32_t delayed_by_ms)
 {
 	if (
-		(delayed_by_ms > 0) &&
-		(m_delayed_connect_timer.expires_at() > boost::asio::deadline_timer::traits_type::now())
+		(delayed_by_ms > 0) && // want delayed connect
+		(m_delayed_connect_timer.expires_at() > boost::asio::deadline_timer::traits_type::now()) // timer not expired
 	)
 	{
 		m_delayed_connect_timer.expires_from_now(boost::posix_time::milliseconds(delayed_by_ms));
@@ -68,14 +68,6 @@ void TCPClient::connectTo(std::string host, int16_t port, uint32_t delayed_by_ms
 
 void TCPClient::handle_connect(const boost::system::error_code& error)
 {
-	if (error)
-	{
-		//std::cout << "Error: could not connect : " << error.message() << " - " << error.value() << std::endl;
-		/*if (m_socket->is_open())
-		{
-			m_socket->close();
-		}*/
-	}
 	if (0 != m_connected_callback)
 	{
 		m_connected_callback(error);

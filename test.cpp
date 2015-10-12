@@ -12,6 +12,7 @@ public:
 		 m_host("127.0.0.1")
 		,m_port(1234)
         ,m_bConnected(false)
+		,m_bWantReconnect(true)
 	{
         m_tcpClient.set_connected_callback( boost::bind(&Algorithm::handle_connected, this, _1) );
         m_tcpClient.set_received_callback(boost::bind(&Algorithm::handle_read, this, _1, _2, _3));
@@ -21,11 +22,13 @@ public:
 
 	void start()
 	{
+		m_bWantReconnect = true;
 		m_tcpClient.connectTo(m_host, m_port, 0);
 	}
 
 	void stop()
 	{
+		m_bWantReconnect = false;
 		m_tcpClient.disconnect();
 	}
 
@@ -36,12 +39,14 @@ public:
 			m_bConnected = true;
 			std::cout << "Connected - starting receive " << std::endl;
 			m_tcpClient.startReceive();
-			//std::cout << "          - starting send " << std::endl;
-			//startSend();
         }
         else
 		{
-			std::cout << error.message() << " -> Disconnecting" << std::endl;
+			if (error.value() == 125) // operation canceled
+			{
+				return;
+			}
+			std::cout << error.message() << ": "<< error.value() << " -> Disconnecting" << std::endl;
 			m_tcpClient.disconnect();
 		}
     }
@@ -50,9 +55,11 @@ public:
     {
         m_bConnected = false;
         std::cout << "Algo::Disconnected" << std::endl;
-
-		std::cout << "Algo::Re-Connecting2..." << std::endl;
-		m_tcpClient.connectTo(m_host, m_port, 4000);
+		if (m_bWantReconnect)
+		{
+			std::cout << "Algo::Re-Connecting..." << std::endl;
+			m_tcpClient.connectTo(m_host, m_port, 4000);
+		}
     }
 
     void handle_read(const boost::system::error_code& ec, size_t bytes_transferred, const char *data)
@@ -89,6 +96,7 @@ public:
 private:
 	TCPClient m_tcpClient;
     bool      m_bConnected;
+	bool      m_bWantReconnect;
 };
 
 void sleeper()
@@ -109,17 +117,14 @@ int main()
 	
 
 	Algorithm a;	
-/*	
+	
 	SLEEP_MS(200);
 	a.start();
-    SLEEP_MS(500);
-    SLEEP_MS(1200);
+    SLEEP_MS(3000);
     a.stop();
-*/	
+
 	SLEEP_MS(300);
 	a.start();
-	SLEEP_MS(900);
-	//a.stop();
 
 	
 	boost::thread s( boost::bind( &sleeper ) );	
