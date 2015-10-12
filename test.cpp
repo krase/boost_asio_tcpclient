@@ -62,11 +62,15 @@ public:
 		}
     }
 
-    void handle_read(const boost::system::error_code& ec, size_t bytes_transferred, const char *data)
+    void handle_read(const boost::system::error_code& error, size_t bytes_transferred, const char *data)
     {
-		if (ec)
+		if (error)
 		{
-			std::cout << "Algo::handle_read: could not read : " << ec.message() << " : " << ec.value() << std::endl;
+			if (error.value() == 1236) // win: networkconnection locally closed
+			{
+				return;
+			}
+			std::cout << "Algo::handle_read: could not read : " << error.message() << " : " << error.value() << std::endl;
 			m_tcpClient.disconnect(); // will cause a delayed re-connect
 			return;
 		}
