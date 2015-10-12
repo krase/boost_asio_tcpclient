@@ -57,16 +57,12 @@ public:
 
     void handle_read(const boost::system::error_code& ec, size_t bytes_transferred, const char *data)
     {
-		if (ec.value() == 107) // endpoint not connected
+		if (ec)
 		{
-			m_tcpClient.disconnect();
+			std::cout << "Algo::handle_read: could not read : " << ec.message() << " : " << ec.value() << std::endl;
+			m_tcpClient.disconnect(); // will cause a delayed re-connect
 			return;
 		}
-		else if (ec.value() == 2) // end of file
-        {
-            m_tcpClient.disconnect();
-            return;
-        }
 
         std::string tmp;
         tmp.assign((const char*)data, bytes_transferred);

@@ -44,7 +44,6 @@ void TCPClient::Worker()
 }
 
 
-
 void TCPClient::connectTo(std::string host, int16_t port, uint32_t delayed_by_ms)
 {
 	if (
@@ -65,18 +64,17 @@ void TCPClient::connectTo(std::string host, int16_t port, uint32_t delayed_by_ms
 
 		m_socket->async_connect(*endpoint_iterator, boost::bind(&TCPClient::handle_connect, this, boost::asio::placeholders::error));
 	}
-
 }
 
 void TCPClient::handle_connect(const boost::system::error_code& error)
 {
 	if (error)
 	{
-		std::cout << "Warning: could not connect : " << error.message() << " - " << error.value() <<std::endl;
-		if (m_socket->is_open())
+		//std::cout << "Error: could not connect : " << error.message() << " - " << error.value() << std::endl;
+		/*if (m_socket->is_open())
 		{
 			m_socket->close();
-		}
+		}*/
 	}
 	if (0 != m_connected_callback)
 	{
@@ -93,10 +91,6 @@ void TCPClient::startReceive()
 
 void TCPClient::handle_read(const boost::system::error_code& ec, size_t bytes_transferred)
 {
-	if( ec)
-	{
-		std::cout << "Error: could not read : " << ec.message() << " : " << ec.value() << std::endl;
-	}
 	if (0 != m_received_callback)
 	{
 		m_received_callback(ec, bytes_transferred, m_rx_buffer.data() );
@@ -106,38 +100,6 @@ void TCPClient::handle_read(const boost::system::error_code& ec, size_t bytes_tr
 	{
 		startReceive();
 	}
-//	else
-//	{
-//		return;
-/*		if (ec.value() == 125) // operation canceled
-		{
-			return;
-		}
-		else if (ec.value() == 107) // endpoint not connected
-		{
-			disconnect();
-			return;
-		}
-		else if (ec.value() == 9) // bad file desc
-		{
-			return;
-		}
-		else if (ec.value() == 2) // end of file
-        {
-            disconnect();
-            return;
-        }
-		else if (ec.value() == 1236) // connection closed
-		{
-			return; // ignore error
-		}
-		else if (ec.value() == 10054) // connection closed
-		{
-			disconnect();
-			return; // ignore error
-		}*/
-//		return;
-//	}
 }
 
 void TCPClient::send_data(const char *data, size_t len)
@@ -154,15 +116,14 @@ void TCPClient::disconnect()
 
 void TCPClient::doDisconnect()
 {
-		//m_socket->cancel(); // cancel all operations on the socket
-		if (m_socket->is_open())
-		{
-			m_socket->close(); // close connection
-		}
-		m_io_service.reset(); // remove pending operations
-		m_socket.reset(new tcp::socket(m_io_service)); // reset to usable state
+	m_io_service.reset(); // remove pending operations
+	if (m_socket->is_open())
+	{
+		m_socket->close(); // close connection
+	}
+	m_socket.reset(new tcp::socket(m_io_service)); // reset to usable state
 
-        m_disconnected_callback();
+    m_disconnected_callback();
 }
 
 
