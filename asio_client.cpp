@@ -6,12 +6,13 @@
 
 TCPClient::TCPClient() :
 	m_work(m_io_service),
-    m_worker( boost::bind(&TCPClient::Worker, this) ), //creates and runs the thread
-    m_socket( new tcp::socket(m_io_service) ),
-    m_disconnected_callback(0),
-    m_connected_callback(0),
-    m_received_callback(0),
-    m_sent_callback(0),
+	//C++11: m_worker( [&] { return m_io_service.run(); } ), //creates and runs the thread
+	m_worker( boost::bind(&TCPClient::Worker, this) ), //creates and runs the thread
+	m_socket( new tcp::socket(m_io_service) ),
+	m_disconnected_callback(0),
+	m_connected_callback(0),
+	m_received_callback(0),
+	m_sent_callback(0),
 	m_delayed_connect_timer(m_io_service)
 {
 }
@@ -19,10 +20,10 @@ TCPClient::TCPClient() :
 TCPClient::~TCPClient()
 {
 	m_delayed_connect_timer.cancel();
-    doDisconnect();
-    m_io_service.stop();
-    if (m_worker.joinable())
-        m_worker.join();
+	doDisconnect();
+	m_io_service.stop();
+	if (m_worker.joinable())
+		m_worker.join();
 }
 
 
@@ -96,8 +97,8 @@ void TCPClient::handle_read(const boost::system::error_code& ec, size_t bytes_tr
 
 void TCPClient::send_data(const char *data, size_t len)
 {
-    async_write(*m_socket, boost::asio::buffer(data, len), m_sent_callback); //ensures that all is written when handler is invoked
-    //m_socket->async_send(boost::asio::buffer(data, len), m_sent_callback);
+	async_write(*m_socket, boost::asio::buffer(data, len), m_sent_callback); //ensures that all is written when handler is invoked
+	//m_socket->async_send(boost::asio::buffer(data, len), m_sent_callback);
 }
 
 void TCPClient::disconnect()
@@ -115,7 +116,7 @@ void TCPClient::doDisconnect()
 	}
 	m_socket.reset(new tcp::socket(m_io_service)); // reset to usable state
 
-    m_disconnected_callback();
+	m_disconnected_callback();
 }
 
 

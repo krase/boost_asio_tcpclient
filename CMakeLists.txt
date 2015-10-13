@@ -5,23 +5,24 @@ set(Boost_USE_MULTITHREADED      ON)
 find_package(Boost 1.50.0 COMPONENTS system thread)
 
 add_definitions(-D_WIN32_WINNT=0x0601)
+#add_definitions(-std=c++11)
 
 if (WIN32)
-link_directories(${Boost_LIBRARY_DIR})
+	link_directories(${Boost_LIBRARY_DIR})
 endif()
 
 set(target test_client)
 
 if(Boost_FOUND)
-  include_directories(${Boost_INCLUDE_DIRS})
-  add_executable(${target}
-	asio_client.cpp
-	test.cpp
+	include_directories(${Boost_INCLUDE_DIRS})
+	add_executable(${target}
+		asio_client.cpp
+		test.cpp
 	)
-  target_link_libraries(${target} ${Boost_LIBRARIES})
-  if(UNIX)
-	target_link_libraries(${target} pthread)
-  endif()
+	target_link_libraries(${target} ${Boost_LIBRARIES})
+	if(UNIX)
+		target_link_libraries(${target} pthread)
+	endif()
 else()
 	message("Erro: Boost not found")
 endif()

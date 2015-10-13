@@ -48,11 +48,10 @@ private:
 
 	void Worker();
 
-	boost::asio::io_service m_io_service;
-	boost::asio::io_service::work m_work;
+	boost::asio::io_service        m_io_service;
+	boost::asio::io_service::work  m_work;
 	boost::shared_ptr<tcp::socket> m_socket;
-	boost::array<char, 65000> m_rx_buffer;
-	boost::asio::deadline_timer m_delayed_connect_timer;
-
-	boost::thread m_worker;
+	boost::array<char, (1 << 16)>  m_rx_buffer;
+	boost::asio::deadline_timer    m_delayed_connect_timer;
+	boost::thread                  m_worker;
 };
