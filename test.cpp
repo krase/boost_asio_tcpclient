@@ -108,7 +108,7 @@ private:
 	bool      m_bWantReconnect;
 };
 
-void sleeper()
+static void sleeper()
 {
 	SLEEP_MS(100);
 	//std::cout << "Started sleeper" << std::endl;

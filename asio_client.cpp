@@ -29,19 +29,20 @@ TCPClient::~TCPClient()
 
 void TCPClient::Worker()
 {
-	std::cout << "Worker started" << std::endl;
+    std::cerr << "Worker started" << std::endl;
 	while (false == m_io_service.stopped())
 	{
 		try
 		{
 			m_io_service.run();
-		}
+            std::cerr << "IOSERVICE ended" << std::endl;
+        }
 		catch(boost::system::system_error const& e)
 		{
 			std::cout << "Exception: " << e.what() << std::endl;
 		}
 	}
-	std::cout << "Worker ended" << std::endl;
+    std::cerr << "Worker ended" << std::endl;
 }
 
 
@@ -59,7 +60,7 @@ void TCPClient::connectTo(std::string host, int16_t port, uint32_t delayed_by_ms
 	{
 		m_delayed_connect_timer.expires_at(boost::posix_time::pos_infin);
 
-		tcp::resolver resolver(m_io_service);
+        tcp::resolver resolver(m_io_service);
 		tcp::resolver::query query(host, boost::lexical_cast< std::string >(port));
 		tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
 
@@ -77,10 +78,28 @@ void TCPClient::handle_connect(const boost::system::error_code& error)
 
 void TCPClient::startReceive()
 {
-	m_socket->async_read_some(boost::asio::buffer(m_rx_buffer), boost::bind(&TCPClient::handle_read, this, 
+    m_socket->async_read_some(boost::asio::buffer(m_rx_buffer),
+        boost::bind(&TCPClient::handle_read, this,
 				boost::asio::placeholders::error, 
 				boost::asio::placeholders::bytes_transferred));
 }
+
+void TCPClient::startReceive(size_t len)
+{
+    if (len == 0)
+        return;
+
+    boost::asio::async_read(*m_socket, boost::asio::buffer(m_rx_buffer),
+        [=] (const boost::system::error_code& error, std::size_t bytes_transferred){ return len - std::min(len,bytes_transferred); },
+        boost::bind(&TCPClient::handle_read, this,
+             boost::asio::placeholders::error,
+             boost::asio::placeholders::bytes_transferred));
+
+    //m_socket->async_read_some(boost::asio::buffer(m_rx_buffer), boost::bind(&TCPClient::handle_read, this,
+    //            boost::asio::placeholders::error,
+    //            boost::asio::placeholders::bytes_transferred));
+}
+
 
 void TCPClient::handle_read(const boost::system::error_code& ec, size_t bytes_transferred)
 {
@@ -89,10 +108,10 @@ void TCPClient::handle_read(const boost::system::error_code& ec, size_t bytes_tr
 		m_received_callback(ec, bytes_transferred, m_rx_buffer.data() );
 	}
 
-	if (!ec)
+/*	if (!ec)
 	{
-		startReceive();
-	}
+        //startReceive();
+    }*/
 }
 
 void TCPClient::send_data(const char *data, size_t len)
@@ -104,17 +123,18 @@ void TCPClient::send_data(const char *data, size_t len)
 void TCPClient::disconnect()
 {
 	m_delayed_connect_timer.cancel();
-	m_io_service.post(boost::bind(&TCPClient::doDisconnect, this));
+    m_io_service.reset(); // remove pending operations
+
+    m_io_service.post(boost::bind(&TCPClient::doDisconnect, this));
 }
 
 void TCPClient::doDisconnect()
 {
-	m_io_service.reset(); // remove pending operations
 	if (m_socket->is_open())
 	{
 		m_socket->close(); // close connection
 	}
-	m_socket.reset(new tcp::socket(m_io_service)); // reset to usable state
+    m_socket.reset(new tcp::socket(m_io_service)); // reset to usable state
 
 	m_disconnected_callback();
 }

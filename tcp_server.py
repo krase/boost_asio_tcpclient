@@ -27,7 +27,8 @@ while 1:
         #data = conn.recv(BUFFER_SIZE)
         #if not data: break
         #print "received data:", data
-        data = bytearray('%d '%i, 'ascii')
+        data = b'\x0AABCDEFGHIJ' 
+        #bytearray('%d '%i, 'ascii')
         try:
             time.sleep(0.01)
             conn.send(data)  # echo

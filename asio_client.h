@@ -34,7 +34,8 @@ public:
 
 	void connectTo(std::string host, int16_t port, uint32_t delayed_by_ms=0);
 	void send_data(const char *data, size_t len);
-	void startReceive();
+        void startReceive();
+        void startReceive(size_t len);
 
 	void disconnect();
 	
