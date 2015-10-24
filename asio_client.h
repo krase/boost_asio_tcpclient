@@ -32,10 +32,9 @@ public:
 	void set_received_callback(ReceivedCallback_t cb) { m_received_callback = cb; }
 	void set_sent_callback(SentCallback_t cb) { m_sent_callback = cb; }
 
-	void connectTo(std::string host, int16_t port, uint32_t delayed_by_ms=0);
-	void send_data(const char *data, size_t len);
-        void startReceive();
-        void startReceive(size_t len);
+    void connect_to(std::string host, int16_t port, uint32_t delayed_by_ms=0);
+    void send_data(const void *data, size_t len);
+    void start_receive(void *pBuffer, size_t len);
 
 	void disconnect();
 	
@@ -44,15 +43,15 @@ public:
 private:
 
 	void handle_connect(const boost::system::error_code& error);
-	void handle_read(const boost::system::error_code& ec, size_t bytes_transferred);
+    //void handle_read(const boost::system::error_code& ec, size_t bytes_transferred);
 	void doDisconnect();
 
-	void Worker();
+    //void Worker();
 
 	boost::asio::io_service        m_io_service;
 	boost::asio::io_service::work  m_work;
 	boost::shared_ptr<tcp::socket> m_socket;
-	boost::array<char, (1 << 16)>  m_rx_buffer;
+    void                          *m_rx_buffer;
 	boost::asio::deadline_timer    m_delayed_connect_timer;
 	boost::thread                  m_worker;
 };

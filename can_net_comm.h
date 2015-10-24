@@ -33,4 +33,6 @@ private:
     TCPClient m_tcpClient;
     bool      m_bConnected;
     bool      m_bWantReconnect;
+
+    boost::array<char, (1 << 16)>  m_rx_buffer;
 };

@@ -6,6 +6,7 @@ class Algorithm
 {		//m_tcpClient.connectTo("192.168.1.143", 1234);
 	const std::string m_host;
 	const uint16_t m_port;
+    boost::array<char, (1 << 16)>  m_rx_buffer;
 
 public:
 	Algorithm() :
@@ -23,7 +24,7 @@ public:
 	void start()
 	{
 		m_bWantReconnect = true;
-		m_tcpClient.connectTo(m_host, m_port, 0);
+        m_tcpClient.connect_to(m_host, m_port, 0);
 	}
 
 	void stop()
@@ -38,7 +39,7 @@ public:
 		{
 			m_bConnected = true;
 			std::cout << "Connected - starting receive " << std::endl;
-			m_tcpClient.startReceive();
+            m_tcpClient.start_receive(m_rx_buffer.data(), 10);
 		}
 		else
 		{
@@ -58,7 +59,7 @@ public:
 		if (m_bWantReconnect)
 		{
 			std::cout << "Algo::Re-Connecting..." << std::endl;
-			m_tcpClient.connectTo(m_host, m_port, 4000);
+            m_tcpClient.connect_to(m_host, m_port, 4000);
 		}
 	}
 

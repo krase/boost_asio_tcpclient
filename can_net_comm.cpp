@@ -1,6 +1,9 @@
 #include "asio_client.h"
 #include "can_net_comm.h"
 
+#include "frame.h"
+
+#include <memory>
 
 #define SLEEP_MS(x) boost::this_thread::sleep(boost::posix_time::milliseconds(x));
 
@@ -24,7 +27,7 @@ void Connection::start()
 {
     //m_tcpClient.connectTo("192.168.1.143", 1234);
     m_bWantReconnect = true;
-    m_tcpClient.connectTo(m_host, m_port, 100);
+    m_tcpClient.connect_to(m_host, m_port, 100);
 }
 
 void Connection::stop()
@@ -40,7 +43,7 @@ void Connection::handle_connected(const boost::system::error_code& error)
         m_bConnected = true;
         std::cout << "Connected - starting receive " << std::endl;
         m_mode = READ_SIZE;
-        m_tcpClient.startReceive(m_size_field_len);
+        m_tcpClient.start_receive(m_rx_buffer.data(), m_size_field_len);
     }
     else
     {
@@ -60,7 +63,7 @@ void Connection::handle_disconnect()
     if (m_bWantReconnect)
     {
         std::cout << "Algo::Re-Connecting..." << std::endl;
-        m_tcpClient.connectTo(m_host, m_port, 4000);
+        m_tcpClient.connect_to(m_host, m_port, 4000);
     }
 }
 
@@ -78,7 +81,7 @@ void Connection::handle_read(const boost::system::error_code& error, size_t byte
         }
         if (error.value() == 9) // linux: bad file descriptor
         {
-            //return;
+            return;
         }
         std::cout << "Algo::handle_read: could not read : " << error.message() << " : " << error.value() << std::endl;
         m_tcpClient.disconnect(); // will cause a delayed re-connect through handle_disconnect()
@@ -88,22 +91,28 @@ void Connection::handle_read(const boost::system::error_code& error, size_t byte
         if (m_mode == READ_SIZE)
         {
             // read data with size...
-            size_t size = data[0]; // unpack size
-            std::cout << "len: " << size << std::endl;
+            const size_t size = data[0]; // unpack size
+            //std::cout << "len: " << size << std::endl;
             m_mode = READ_DATA;
-            m_tcpClient.startReceive(size);
+            m_tcpClient.start_receive(m_rx_buffer.data(), size);
         }
         else if (m_mode == READ_DATA)
         {
-            std::string tmp;
-            tmp.assign((const char*)data, bytes_transferred);
-            std::cout << "size: " << bytes_transferred << " data: " << tmp << std::endl;
+            //std::string tmp;
+            //tmp.assign((const char*)data, bytes_transferred);
+            //std::cout << "size: " << bytes_transferred << " data: " << tmp << std::endl;
             // work with received data:
 
-            // TODO: parse frame and so on
+            // parse frame
+            std::shared_ptr<Frame> f = Frame::make_shared((const uint8_t*)data, bytes_transferred);
+            std::cout << "RX: " << std::string(*f) << std::endl;
 
             m_mode = READ_SIZE; //read size again
-            m_tcpClient.startReceive(m_size_field_len);
+            m_tcpClient.start_receive(m_rx_buffer.data(), m_size_field_len);
+        }
+        else
+        {
+            std::cout << "Should not happen" << std::endl;
         }
     }
 }
@@ -134,7 +143,7 @@ static void sleeper()
 	while(1)
 	{
 		SLEEP_MS(4000);
-        std::cout << "." << std::endl;
+        //std::cout << "." << std::endl;
 		//break;
 	}
 	//std::cout << "sleeper end" << std::endl;
@@ -143,7 +152,6 @@ static void sleeper()
 int main()
 {
     Connection conn;
-    boost::thread s( boost::bind( &sleeper ) );
 
 	SLEEP_MS(200);
     conn.start();
@@ -154,6 +162,7 @@ int main()
     conn.start();
 
 	
-	s.join();
+    boost::thread s( boost::bind( &sleeper ) );
+    s.join();
 	return 0;
 }

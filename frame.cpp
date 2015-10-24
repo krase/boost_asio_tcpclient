@@ -1,34 +1,32 @@
 #include "frame.h"
 #include <cstring>
+#include <iostream>
 
-boost::shared_ptr<Frame> Frame::parse(uint8_t *data)
+/*
+std::shared_ptr<Frame> Frame::parse(const uint8_t *data)
 {
     if (data == 0)
         return nullptr;
 
-    uint8_t size = data[0];
-    uint8_t calced_crc = Frame::calc_crc(data, size);
-    uint8_t crc = data[size-1];
+    uint8_t size = data[0]; // unpack size
 
-    if (calced_crc != crc)
-        return nullptr; //TODO: raise exception
+    return std::shared_ptr<Frame>(new Frame(data, size));
+}*/
 
-    return boost::shared_ptr<Frame>(new Frame(data, size));
+std::shared_ptr<Frame> Frame::make_shared(const uint8_t *data, size_t size)
+{
+    if (data == 0)
+        return nullptr;
+
+    return std::shared_ptr<Frame>(new Frame(data, size));
 }
 
-Frame::Frame(uint8_t *data, uint16_t size)
+Frame::Frame(const void *_data, std::size_t size)
 {
-    this->data.resize(size);
-    std::copy(data, data+size, this->data.begin());
+    const uint8_t *pData = (const uint8_t*)_data;
+    this->m_data.resize(size);
+    std::copy(pData, pData+size, this->m_data.begin());
     //memcpy(this->data.data(), data, size);
-}
 
-uint8_t Frame::calc_crc(uint8_t *data, uint16_t size)
-{
-    uint8_t crc = 0;
-    for (uint32_t i = 0; i < size; ++i)
-    {
-        crc += data[i];
-    }
-    return crc;
+    m_type = static_cast<MsgType>(m_data[0]);
 }

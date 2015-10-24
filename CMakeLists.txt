@@ -7,6 +7,7 @@ find_package(Boost 1.50.0 COMPONENTS system thread)
 add_definitions(-D_WIN32_WINNT=0x0601)
 add_definitions(-std=c++11)
 add_definitions(-ggdb)
+#add_definitions(-O3)
 
 if (WIN32)
 	link_directories(${Boost_LIBRARY_DIR})
