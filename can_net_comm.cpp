@@ -41,7 +41,7 @@ void Connection::handle_connected(const boost::system::error_code& error)
     if (! error)
     {
         m_bConnected = true;
-        std::cout << "Connected - starting receive " << std::endl;
+        //std::cout << "Connected - starting receive " << std::endl;
         m_mode = READ_SIZE;
         m_tcpClient.start_receive(m_rx_buffer.data(), m_size_field_len);
     }
@@ -81,6 +81,11 @@ void Connection::handle_read(const boost::system::error_code& error, size_t byte
         }
         if (error.value() == 9) // linux: bad file descriptor
         {
+            return;
+        }
+        if (error.value() == 107) // linux: transport endpoint not connected
+        {
+            m_tcpClient.disconnect(); // will cause a delayed re-connect through handle_disconnect()
             return;
         }
         std::cout << "Algo::handle_read: could not read : " << error.message() << " : " << error.value() << std::endl;
@@ -152,13 +157,13 @@ static void sleeper()
 int main()
 {
     Connection conn;
-
+/*
 	SLEEP_MS(200);
     conn.start();
 	SLEEP_MS(3000);
     conn.stop();
 
-	SLEEP_MS(300);
+	SLEEP_MS(300);*/
     conn.start();
 
 	
