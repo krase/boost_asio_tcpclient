@@ -58,15 +58,8 @@ void TCPClient::handle_connect(const boost::system::error_code& error)
 	}
 }
 
-/*
-void TCPClient::startReceive()
-{
-    m_socket->async_read_some(boost::asio::buffer(m_rx_buffer),
-        boost::bind(&TCPClient::handle_read, this,
-				boost::asio::placeholders::error, 
-				boost::asio::placeholders::bytes_transferred));
-}*/
 
+/* Checks if all bytes of a boost::asio::async_read call were transmitted */
 std::size_t checkEnd(const boost::system::error_code& error, std::size_t bytes_transferred, std::size_t len)
 {
     if (error)
