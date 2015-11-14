@@ -51,7 +51,7 @@ void Connection::handle_connected(const boost::system::error_code& error)
         {
             return;
         }
-        std::cout << error.message() << ": "<< error.value() << " -> Disconnecting" << std::endl;
+        std::cout <<"Could not connect: " << error.message() << ": "<< error.value() << " -> Disconnecting" << std::endl;
         m_tcpClient.disconnect();
     }
 }
@@ -156,6 +156,7 @@ static void sleeper()
 
 int main()
 {
+    std::cout << "Hello\n";
     Connection conn;
 /*
 	SLEEP_MS(200);
