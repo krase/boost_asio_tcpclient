@@ -3,6 +3,7 @@
 
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
+#include <boost/thread/thread.hpp>
 
 #include "tcpserversession.h"
 #include "iserverhandler.h"
@@ -15,6 +16,8 @@ public:
 private:
     boost::asio::io_service m_io_service;
     boost::asio::ip::tcp::acceptor m_acceptor;
+    boost::thread m_worker;
+
     IServerHandler *m_pHandler;
 
     void start_accept();

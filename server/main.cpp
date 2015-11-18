@@ -10,7 +10,15 @@
 
 class NetCommSessionHandler : ISessionHandler
 {
+    virtual void handle_read(const boost::system::error_code &error, size_t bytes_transferred)
+    {
 
+    }
+
+    virtual void handle_write(const boost::system::error_code &error, size_t bytes_transferred)
+    {
+
+    }
 };
 
 class NetCommServer : public IServerHandler

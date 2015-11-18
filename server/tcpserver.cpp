@@ -3,11 +3,13 @@
 
 TCPServer::TCPServer(uint16_t port, IServerHandler *pHandler) :
     m_acceptor(m_io_service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port)),
-    m_pHandler(pHandler)
+    m_pHandler(pHandler),
+    m_worker( boost::bind(&TCPServer::run, this) )
 {
     start_accept();
 }
 
+// Run the worker thread
 void TCPServer::run()
 {
     m_io_service.run();
@@ -36,7 +38,6 @@ void TCPServer::start_accept()
      if (!error) {
          // Start the connection
          //
-         //session->start();
          m_pHandler->session_started(session);
 
          // Accept another client
