@@ -11,9 +11,14 @@ boost::asio::ip::tcp::socket& TCPServerSession::socket()
     return m_socket;
 }
 
+//void TCPServerSession::start()
+//{
+    //todo user should be notified here
+//}
+
 void TCPServerSession::handle_write(const boost::system::error_code& error, size_t bytes_transferred)
 {
-
+//TODO: add TCPServerSession::pointer argument
 }
 
 void TCPServerSession::handle_read(const boost::system::error_code &error, size_t bytes_transferred)

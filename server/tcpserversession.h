@@ -2,15 +2,17 @@
 #define TCPSERVERSESSION_H
 
 #include <boost/asio.hpp>
+#include <boost/enable_shared_from_this.hpp>
+#include <stdint.h>
 
-class TCPServerSession
+class TCPServerSession : public boost::enable_shared_from_this<TCPServerSession>
 {
 public:
-    typedef boost::shared_ptr<TCPServerSession> pointer;
+    typedef boost::shared_ptr<TCPServerSession> SPointer;
 
-    static pointer create(boost::asio::io_service& io_service)
+    static SPointer create(boost::asio::io_service& io_service)
     {
-        return pointer(new TCPServerSession(io_service));
+        return SPointer(new TCPServerSession(io_service));
     }
 
     boost::asio::ip::tcp::socket &socket();
