@@ -15,13 +15,13 @@ class TCPClient
 {
 	typedef boost::function<void(const boost::system::error_code& error)> ConnectedCallback_t;
 	typedef boost::function<void()> DisconnectedCallback_t;
-	typedef boost::function<void(const boost::system::error_code& error, size_t bytesTransferred, const char *data)> ReceivedCallback_t;
-	typedef boost::function<void(const boost::system::error_code& error, size_t bytesTransferred)> SentCallback_t;
+    typedef boost::function<void(const boost::system::error_code& error, size_t bytesTransferred, const char *data)> ReadCallback_t;
+    typedef boost::function<void(const boost::system::error_code& error, size_t bytesTransferred)> WriteCallback_t;
 
 	ConnectedCallback_t    m_connected_callback;
 	DisconnectedCallback_t m_disconnected_callback;
-	ReceivedCallback_t     m_received_callback;
-	SentCallback_t         m_sent_callback;
+    ReadCallback_t         m_read_callback;
+    WriteCallback_t        m_write_callback;
 
 public:
 	TCPClient();
@@ -29,12 +29,12 @@ public:
 
 	void set_connected_callback(ConnectedCallback_t cb) { m_connected_callback = cb; }
 	void set_disconnected_callback(DisconnectedCallback_t cb) { m_disconnected_callback = cb; }
-	void set_received_callback(ReceivedCallback_t cb) { m_received_callback = cb; }
-	void set_sent_callback(SentCallback_t cb) { m_sent_callback = cb; }
+    void set_read_callback(ReadCallback_t cb) { m_read_callback = cb; }
+    void set_write_callback(WriteCallback_t cb) { m_write_callback = cb; }
 
     void connect_to(std::string host, int16_t port, uint32_t delayed_by_ms=0);
-    void send_data(const void *data, size_t len);
-    void start_receive(void *pBuffer, size_t len);
+    void write_data(const void *data, size_t len);
+    void read_data(void *pBuffer, size_t len);
 
 	void disconnect();
 	

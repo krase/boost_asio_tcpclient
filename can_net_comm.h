@@ -27,7 +27,7 @@ public:
 
     void startSend();
 
-    void handle_send(const boost::system::error_code& error, size_t bytes_transferred);
+    void handle_write(const boost::system::error_code& error, size_t bytes_transferred);
 
 private:
     TCPClient m_tcpClient;

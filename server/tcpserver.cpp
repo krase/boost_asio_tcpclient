@@ -1,11 +1,12 @@
 #include "tcpserver.h"
 
 
-TCPServer::TCPServer(uint16_t port, IServerHandler *pHandler) :
+TCPServer::TCPServer(uint16_t port, IServerDelegate *pHandler) :
     m_acceptor(m_io_service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port)),
     m_pHandler(pHandler),
     m_worker( boost::bind(&TCPServer::run, this) )
 {
+    m_acceptor.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
     start_accept();
 }
 
@@ -25,7 +26,7 @@ void TCPServer::start_accept()
 
      // Asynchronously wait to accept a new client
      //
-     m_acceptor.async_accept(session->socket(),
+     m_acceptor.async_accept(session->get_socket(),
          boost::bind(&TCPServer::handle_accept, this, session,
              boost::asio::placeholders::error));
  }

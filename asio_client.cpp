@@ -12,8 +12,8 @@ TCPClient::TCPClient() :
 	m_socket( new tcp::socket(m_io_service) ),
 	m_disconnected_callback(0),
 	m_connected_callback(0),
-	m_received_callback(0),
-	m_sent_callback(0),
+    m_read_callback(0),
+    m_write_callback(0),
 	m_delayed_connect_timer(m_io_service)
 {
 }
@@ -73,16 +73,16 @@ std::size_t checkEnd(const boost::system::error_code& error, std::size_t bytes_t
     }
 }
 
-void TCPClient::start_receive(void *pBuffer, size_t len)
+void TCPClient::read_data(void *pBuffer, size_t len)
 {
     if (len == 0)
         return;
-    if (0 == m_received_callback)
+    if (0 == m_read_callback)
         return;
 
     boost::asio::async_read(*m_socket, boost::asio::buffer(pBuffer, len),
         boost::bind(&checkEnd, _1, _2, len),
-        boost::bind(m_received_callback,
+        boost::bind(m_read_callback,
              boost::asio::placeholders::error,
              boost::asio::placeholders::bytes_transferred,
              (char*)pBuffer));
@@ -93,9 +93,9 @@ void TCPClient::start_receive(void *pBuffer, size_t len)
 }
 
 
-void TCPClient::send_data(const void *data, size_t len)
+void TCPClient::write_data(const void *data, size_t len)
 {
-	async_write(*m_socket, boost::asio::buffer(data, len), m_sent_callback); //ensures that all is written when handler is invoked
+    async_write(*m_socket, boost::asio::buffer(data, len), m_write_callback); //ensures that all is written when handler is invoked
 	//m_socket->async_send(boost::asio::buffer(data, len), m_sent_callback);
 }
 

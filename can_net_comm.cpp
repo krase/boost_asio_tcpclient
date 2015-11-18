@@ -18,8 +18,8 @@ Connection::Connection() :
     ,m_mode(READ_SIZE)
 {
     m_tcpClient.set_connected_callback( boost::bind(&Connection::handle_connected, this, _1) );
-    m_tcpClient.set_received_callback(boost::bind(&Connection::handle_read, this, _1, _2, _3));
-    m_tcpClient.set_sent_callback( boost::bind(&Connection::handle_send, this, _1, _2));
+    m_tcpClient.set_read_callback(boost::bind(&Connection::handle_read, this, _1, _2, _3));
+    m_tcpClient.set_write_callback( boost::bind(&Connection::handle_write, this, _1, _2));
     m_tcpClient.set_disconnected_callback( boost::bind(&Connection::handle_disconnect, this) );
 }
 
@@ -43,7 +43,7 @@ void Connection::handle_connected(const boost::system::error_code& error)
         m_bConnected = true;
         //std::cout << "Connected - starting receive " << std::endl;
         m_mode = READ_SIZE;
-        m_tcpClient.start_receive(m_rx_buffer.data(), m_size_field_len);
+        m_tcpClient.read_data(m_rx_buffer.data(), m_size_field_len);
     }
     else
     {
@@ -79,6 +79,10 @@ void Connection::handle_read(const boost::system::error_code& error, size_t byte
         {
             return;
         }
+        if (error.value() == 2) // linux: end of file
+        {
+            return; //ignore
+        }
         if (error.value() == 9) // linux: bad file descriptor
         {
             return;
@@ -99,7 +103,7 @@ void Connection::handle_read(const boost::system::error_code& error, size_t byte
             const size_t size = data[0]; // unpack size
             //std::cout << "len: " << size << std::endl;
             m_mode = READ_DATA;
-            m_tcpClient.start_receive(m_rx_buffer.data(), size);
+            m_tcpClient.read_data(m_rx_buffer.data(), size);
         }
         else if (m_mode == READ_DATA)
         {
@@ -113,7 +117,7 @@ void Connection::handle_read(const boost::system::error_code& error, size_t byte
             std::cout << "RX: " << std::string(*f) << std::endl;
 
             m_mode = READ_SIZE; //read size again
-            m_tcpClient.start_receive(m_rx_buffer.data(), m_size_field_len);
+            m_tcpClient.read_data(m_rx_buffer.data(), m_size_field_len);
         }
         else
         {
@@ -125,10 +129,10 @@ void Connection::handle_read(const boost::system::error_code& error, size_t byte
 void Connection::startSend()
 {
     std::string tmp("ABC");
-    m_tcpClient.send_data(tmp.c_str(), 3);
+    m_tcpClient.write_data(tmp.c_str(), 3);
 }
 
-void Connection::handle_send(const boost::system::error_code& error, size_t bytes_transferred)
+void Connection::handle_write(const boost::system::error_code& error, size_t bytes_transferred)
 {
     if (false == m_bConnected)
         return;
@@ -136,7 +140,7 @@ void Connection::handle_send(const boost::system::error_code& error, size_t byte
     std::cout << "Sent: " << bytes_transferred << " bytes" << std::endl;
     SLEEP_MS(150);
     std::string tmp("CCC");
-    m_tcpClient.send_data(tmp.c_str(), 3);
+    m_tcpClient.write_data(tmp.c_str(), 3);
 }
 
 

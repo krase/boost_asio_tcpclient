@@ -5,6 +5,8 @@
 #include <boost/enable_shared_from_this.hpp>
 #include <stdint.h>
 
+#include "isessiondelegate.h"
+
 class TCPServerSession : public boost::enable_shared_from_this<TCPServerSession>
 {
 public:
@@ -15,22 +17,22 @@ public:
         return SPointer(new TCPServerSession(io_service));
     }
 
-    boost::asio::ip::tcp::socket &socket();
+    void setSessionDelegate(ISessionDelegate *delegate) { m_pDelegate = delegate; }
 
-    void start_receive(void *pBuffer, size_t len);
+    boost::asio::ip::tcp::socket &get_socket() { return m_socket; }
 
-    void read_data(const void *data, size_t len);
+    void read_data(void *pBuffer, size_t len);
+
+    void write_data(const void *data, size_t len);
 
 
 protected:
-    TCPServerSession(boost::asio::io_service& io_service);
+    TCPServerSession(boost::asio::io_service &io_service);
 
 private:
     boost::asio::ip::tcp::socket m_socket;
+    ISessionDelegate            *m_pDelegate;
 
-    void handle_write(const boost::system::error_code &error, size_t bytes_transferred);
-
-    void handle_read(const boost::system::error_code& error, size_t bytes_transferred);
 };
 
 #endif // TCPSERVERSESSION_H
