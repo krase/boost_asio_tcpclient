@@ -3,4 +3,6 @@ build_server/
 client/build-Desktop-Vorgabe/
 server/CMakeLists.txt.user
 server/build-Desktop-Vorgabe/
+CMakeLists.txt.user
+build-Clang-Vorgabe/
 
