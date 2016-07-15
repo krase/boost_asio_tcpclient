@@ -16,8 +16,8 @@ public:
 		,m_bWantReconnect(true)
 	{
 		m_tcpClient.set_connected_callback( boost::bind(&Algorithm::handle_connected, this, _1) );
-		m_tcpClient.set_received_callback(boost::bind(&Algorithm::handle_read, this, _1, _2, _3));
-		m_tcpClient.set_sent_callback( boost::bind(&Algorithm::handle_send, this, _1, _2));
+        m_tcpClient.set_read_callback(boost::bind(&Algorithm::handle_read, this, _1, _2, _3));
+        m_tcpClient.set_write_callback( boost::bind(&Algorithm::handle_send, this, _1, _2));
 		m_tcpClient.set_disconnected_callback( boost::bind(&Algorithm::handle_disconnect, this) );
 	}
 
@@ -39,7 +39,7 @@ public:
 		{
 			m_bConnected = true;
 			std::cout << "Connected - starting receive " << std::endl;
-            m_tcpClient.start_receive(m_rx_buffer.data(), 10);
+            m_tcpClient.read_data(m_rx_buffer.data(), 10);
 		}
 		else
 		{
@@ -89,7 +89,7 @@ public:
 	void startSend()
 	{
 		std::string tmp("ABC");
-		m_tcpClient.send_data(tmp.c_str(), 3);
+        m_tcpClient.write_data(tmp.c_str(), 3);
 	}
 
 	void handle_send(const boost::system::error_code& error, size_t bytes_transferred)
@@ -100,7 +100,7 @@ public:
 		std::cout << "Sent: " << bytes_transferred << " bytes" << std::endl;
 		SLEEP_MS(150);
 		std::string tmp("CCC");
-		m_tcpClient.send_data(tmp.c_str(), 3);
+        m_tcpClient.write_data(tmp.c_str(), 3);
 	}
 
 private:
