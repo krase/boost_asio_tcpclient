@@ -2,10 +2,10 @@ project(boost_asio)
 cmake_minimum_required(VERSION 3.1)
 
 set(Boost_USE_MULTITHREADED      ON)
-find_package(Boost 1.50.0 COMPONENTS system thread)
+find_package(Boost 1.58.0 COMPONENTS system thread)
 include_directories(${Boost_INCLUDE_DIRS})
 
-if(NOT Boost_INCULDE_DIR)
+if(NOT Boost_FOUND)
     message(FATAL_ERROR "Error: Boost not found")
 endif()
 
@@ -15,7 +15,7 @@ if (WIN32)
 else()
     add_definitions(-std=c++11)
     add_definitions(-ggdb)
-    add_definitions(-O3)
+    #add_definitions(-O3)
 endif()
 
 add_subdirectory(client)
