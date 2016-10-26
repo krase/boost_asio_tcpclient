@@ -75,6 +75,10 @@ public:
 			{
 				return;
 			}
+            if (error.value() == boost::asio::error::eof)
+            {
+                return;
+            }
 			std::cout << "Algo::handle_read: could not read : " << error.message() << " : " << error.value() << std::endl;
 			m_tcpClient.disconnect(); // will cause a delayed re-connect through handle_disconnect()
 		}
@@ -128,8 +132,10 @@ int main()
 	
 	SLEEP_MS(200);
 	a.start();
-	SLEEP_MS(3000);
-	a.stop();
+    SLEEP_MS(300);
+    a.startSend();
+    SLEEP_MS(3000);
+    a.stop();
 
 	SLEEP_MS(300);
 	a.start();

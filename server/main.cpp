@@ -46,7 +46,8 @@ public:
     {
         std::cout << "RX: " << (long)bytes_transferred << "; " << show_hex(std::string(data, bytes_transferred)) << std::endl;
 
-        //session->write_data(m_rx_buffer.data(), 4);
+        // send data back
+        //serverSession->write_data(data, bytes_transferred);
     }
 
     virtual void handle_write(const boost::system::error_code &error, size_t bytes_transferred)
@@ -72,11 +73,10 @@ public:
         std::cout << "Started session" << std::endl;
 
         session->read_data(m_rx_buffer.data(), 4);
-        //m_spSession = session; //TODO: register session in array
-        // session->start();
+        //TODO: register session in array
 
         // register client
-        // start readingmessages
+        // start reading messages
         // distribute messages to other sessions
     }
 private:
